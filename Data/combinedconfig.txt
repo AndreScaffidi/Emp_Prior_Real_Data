@@ -1,0 +1,149 @@
+&GEOMETRY
+    ! shape and size of model/observed counts map
+
+    ! shape of model/observed counts array (# lat bins, # lon bins, # E bins)
+    MAP_SHAPE = 400, 400, 30
+
+
+    ! the pixel with index REFERENCE_PIXEL_INDS has its lower left corner at
+    ! coordinates REFERENCE_PIXEL_COORDS
+    REFERENCE_PIXEL_INDS = 1, 1 !lat, lon
+    REFERENCE_PIXEL_COORDS = -10.025, -10.025 !lat, lon
+
+
+    ! pixel size in lat, lon
+    PIXEL_SIZE = 0.05, 0.05
+
+
+    ! The energies at the centers of the E bins (same size as MAP_SHAPE(3))
+    ! these should be the geometric mean of the bin edges
+    ! (units are linear not log10)
+    ENERGIES = 5.610092271509818d-01 7.062687723113772d-01 8.891397050194615d-01 1.119360569284170d+00 1.409191465632227d+00 1.774066946167878d+00 2.233417960754816d+00 2.811706625951746d+00 3.539728921920690d+00 4.456254690668728d+00 5.610092271509817d+00 7.062687723113773d+00 8.891397050194616d+00 1.119360569284170d+01 1.409191465632227d+01 1.774066946167877d+01 2.233417960754816d+01 2.811706625951746d+01 3.539728921920690d+01 4.456254690668728d+01 5.610092271509817d+01 7.062687723113773d+01 8.891397050194617d+01 1.119360569284170d+02 1.409191465632227d+02 1.774066946167877d+02 2.233417960754816d+02 2.811706625951746d+02 3.539728921920692d+02 4.456254690668729d+02
+
+
+    ! widths of energy bins, these are delta log10(E)
+    !  i.e. log10(E2/E1) where E1, E2 are the edges of the bin
+    !  can use namelist abbreviation (e.g. 15*0.1d0 is an array of fifteen copies of 0.1d0)
+    DLOG10E = 1.000000000000000d-01 1.000000000000000d-01 9.999999999999999d-02 9.999999999999998d-02 1.000000000000000d-01 1.000000000000001d-01 9.999999999999998d-02 9.999999999999998d-02 1.000000000000000d-01 9.999999999999987d-02 1.000000000000001d-01 1.000000000000001d-01 9.999999999999987d-02 1.000000000000001d-01 9.999999999999987d-02 1.000000000000001d-01 1.000000000000001d-01 9.999999999999987d-02 1.000000000000001d-01 9.999999999999987d-02 1.000000000000001d-01 1.000000000000001d-01 1.000000000000001d-01 1.000000000000001d-01 9.999999999999964d-02 1.000000000000001d-01 1.000000000000001d-01 1.000000000000001d-01 1.000000000000001d-01 9.999999999999964d-02
+
+
+    ! reference energy for point source spectra
+    ! i.e. spectrum is F0 * (E/E0)^-(alpha + beta ln(E/E0)) * exp(-(E-E0)/Ecutoff)
+    E0 = 1.0d0
+/
+
+&EXPOSUREMAP
+    ! exposure map is a 3d-array with indices lat, lon, energy
+    ! the value is exposure at the CENTER of the pixel
+    ! it is stored as a binary file in C-ordering
+
+    !where to find exposure map file (relative to inifile)
+    FILENAME = "expcube.dat"
+
+
+    ! shape of exposure array (# lat bins, # lon bins, # E bins)
+    EXPMAP_SHAPE = 400, 400, 30
+
+
+    ! the pixel with index REFERENCE_PIXEL_INDS has its lower left corner at
+    ! coordinates REFERENCE_PIXEL_COORDS
+    REFERENCE_PIXEL_INDS = 1, 1 !lat, lon
+    REFERENCE_PIXEL_COORDS = -20.0d0, -20.0d0 !lat, lon
+
+
+    ! pixel size in lat, lon
+    PIXEL_SIZE = 0.1d0, 0.1d0
+/
+
+&BGTEMPLATES
+    ! Templates are each (N,M,L)-arrays where
+    !   N = number of latitude bins
+    !   M = number of longitude bins
+    !   L = number of energy bins
+    !
+    ! template(i,j,k) = number of counts expected from this bg component
+    !  i.e. it is a flux map multiplied by exposure map then
+    !   convolved with PSF and energy dispersion, then integrated over
+    !   solid angle and energy range of pixel i,j,k
+    !
+
+    !number of background components (e.g. isotropic, diffuse)
+    NUM_TEMPLATES = 2
+
+
+    ! shape of each template latitude bins, longitude bins, energy bins
+    TEMPLATE_SHAPE = 400, 400, 30
+
+    ! templates are stored in these files (len=NUM_TEMPLATES)
+    ! (path is relative to this config file)
+    FILENAMES = "bgtemplate_iso.dat" "bgtemplate_diffuse.dat"
+/
+
+&PSFTEMPLATES
+    ! PSF templates are stored in files named psftemplates_I_J.dat, i.e.
+
+    NUM_FILES = 5, 5 !grid of source locations within central pixel
+    GRID_SHAPE = 9, 9 !number of sources to cover full pixel, should be 2*NUM_FILES-1
+
+
+    ! filenames are <prefix>I_J<suffix> (path is relative to this config file)
+    PSF_FILENAME_PREFIX = "psftemplates/psftemplates_"
+    PSF_FILENAME_SUFFIX = ".dat"
+
+
+    ! Individual PSF templates have rank 2 if they are only spatial
+    ! or rank 3 if they include energy
+    ! Index (i,j,k) corresponds to y, x, energy
+    PSF_RANK = 3
+    PSF_SHAPE = 241, 241, 30 ! shape of one PSF template
+
+    ! The point source is located in the same SOURCE_PIXEL for every PSF template (fortran indexing)
+    ! Should be centered with respect to PSF_SHAPE
+    SOURCE_PIXEL = 121, 121
+
+
+    ! Templates only cover a quadrant of central source pixel
+    ! Then you need to flip the PSFs cover the other three quadrants.
+    FLIP = .true.
+/
+
+&LIKELIHOOD
+    ! observed counts map is a 3d-array with indices lat, lon, energy
+    ! the value is the number of counts in the pixel
+    ! it is stored as a binary file in C-ordering as 8-byte doubles
+    ! shape of array taken from GEOMETRY
+
+    ! observed data stored in binary file (path relative to this config file)
+    OBSFILENAME = "obsdata.dat"
+
+
+    ! Fractional uncertainty in exposure is modeled as Gaussian with mean 1
+    ! and std dev given in EXPOSURE_UNCERTAINTY.
+    ! i.e. predicted model counts in bin i are multiplied by nuissance parameter f_i
+    ! and likelihood contains a term constraining the f_i:
+    !       f_i ~ Normal(mean=1, stddev=EXPOSURE_UNCERTAINTY(i))
+    ! EXPOSURE_UNCERTAINTY is an array with length = number of energy bins
+    ! Can use namelist format e.g. 15*0.1d0 means an array of length 15 filled with 0.1d0
+    !  or if you just give it a scalar it will fill array with that value
+
+    EXPOSURE_UNCERTAINTY = 5.000000000000000d-02
+/
+
+
+&PPPC4DM
+    ! Location of AtProduction_gammas.dat file (path is relative to this ini file)
+    PPPC4DMFILE = '../../../../dwarfs/general-paper2/data/spectra/PPPC4DMID/AtProduction_all/AtProduction_gammas.dat'
+    
+    ! Which channels to prepare (list of strings)
+    !  possibilities are:
+    !  'eL', 'eR', 'e', 'muL', 'muR', 'mu', 'tauL', 'tauR', 'tau',
+    !  'q', 'c', 'b', 't',
+    !  'WL', 'WT', 'W', 'ZL', 'ZT', 'Z', 'g', 'gamma', 'h',
+    !  'nue', 'numu', 'nutau', 'V->e', 'V->mu', 'V->tau'
+    CHANNELS_TO_PREPARE = 'b', 'tau'
+    
+    ! log-spacing of mass knots to use for interpolation. Default is 0.001d0
+    DLNMKNOTS = 0.001d0
+/
+
+
